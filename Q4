@@ -1,0 +1,23 @@
+import sys
+import cv2
+import numpy as np
+
+filenames = sys.argv[1:4]
+exposure_times = np.array([1/125.0, 1/30.0, 1/8.0], dtype=np.float32)
+
+imgs = [cv2.imread(fn) for fn in filenames]
+img_list = [i.astype(np.uint8) for i in imgs]
+
+calibrate = cv2.createCalibrateDebevec()
+response = calibrate.process(img_list, times=exposure_times)
+
+merge = cv2.createMergeDebevec()
+hdr = merge.process(img_list, times=exposure_times, response=response)
+
+cv2.imwrite("result_hdr.hdr", hdr)
+
+tonemap = cv2.createTonemapReinhard(gamma=1.0, intensity=0.0, light_adapt=1.0, color_adapt=0.0)
+ldr = tonemap.process(hdr.copy())
+
+ldr_8bit = np.clip(ldr * 255, 0, 255).astype('uint8')
+cv2.imwrite("result_tonemapped.jpg", ldr_8bit)

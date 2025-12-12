@@ -1,0 +1,39 @@
+import cv2
+import numpy as np
+
+img = cv2.imread('zebra.png')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+def freq_sample(img, scale):
+    f = np.fft.fft2(img)
+    fshift = np.fft.fftshift(f)
+    r, c = img.shape
+    sr, sc = int(r*scale/2), int(c*scale/2)
+    out = np.zeros_like(fshift)
+    out[r//2-sr:r//2+sr, c//2-sc:c//2+sc] = fshift[r//2-sr:r//2+sr, c//2-sc:c//2+sc]
+    ishift = np.fft.ifftshift(out)
+    res = np.fft.ifft2(ishift)
+    res = np.abs(res)
+    return res.astype(np.uint8)
+
+f1 = freq_sample(gray, 0.5)
+f2 = freq_sample(gray, 0.25)
+f3 = freq_sample(gray, 0.125)
+f4 = freq_sample(gray, 0.0625)
+
+def spatial_sample(img, scale):
+    r, c = img.shape[:2]
+    return cv2.resize(img, (int(c*scale), int(r*scale)), interpolation=cv2.INTER_NEAREST)
+
+s1 = spatial_sample(gray, 0.5)
+s2 = spatial_sample(gray, 0.25)
+s3 = spatial_sample(gray, 0.125)
+s4 = spatial_sample(gray, 0.0625)
+
+cv2.imwrite('freq_1_2.png', f1)
+cv2.imwrite('freq_1_4.png', f2)
+cv2.imwrite('freq_1_8.png', f3)
+cv2.imwrite('freq_1_16.png', f4)
+
+cv2.imwrite('spatial_52x64.png', s1)
+cv2.imwrite('spatial_26x32.png', s2)

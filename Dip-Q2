@@ -1,0 +1,43 @@
+import numpy as np
+from sklearn.cluster import KMeans
+from skimage import io
+from skimage.color import rgb2lab, lab2rgb
+import matplotlib.pyplot as plt
+
+def kmeans_quantize(image_path, K):
+    img = io.imread(image_path)
+    h, w, c = img.shape
+    img_norm = img / 255.0
+    img_lab = rgb2lab(img_norm)
+    pixels = img_lab.reshape(-1, 3)
+
+    kmeans = KMeans(n_clusters=K, init='k-means++', n_init=5, max_iter=200)
+    kmeans.fit(pixels)
+
+    labels = kmeans.labels_
+    centroids = kmeans.cluster_centers_
+    quantized_lab = centroids[labels].reshape(h, w, 3)
+    quantized_rgb = np.clip(lab2rgb(quantized_lab), 0, 1)
+
+    mse = np.mean((img_norm - quantized_rgb) ** 2)
+    psnr = 10 * np.log10(1.0 / mse)
+
+    return quantized_rgb, mse, psnr
+
+image_path = "mandrill.png"
+Ks = [2, 4, 8]
+results = {}
+
+for k in Ks:
+    quant_img, mse, psnr = kmeans_quantize(image_path, k)
+    results[k] = (quant_img, mse, psnr)
+
+    print(f"K = {k}")
+    print(f"MSE  = {mse}")
+    print(f"PSNR = {psnr}")
+
+    plt.figure(figsize=(4,4))
+    plt.title(f"K = {k}")
+    plt.imshow(quant_img)
+    plt.axis("off")
+    plt.show()

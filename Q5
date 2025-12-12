@@ -1,0 +1,39 @@
+import numpy as np
+from scipy import ndimage
+from imageio import imread, imwrite
+
+img = imread('Torgya - Arunachal Festival.jpg').astype(np.float32)
+
+def box_kernel(n, norm=True):
+    k = np.ones((n,n), np.float32)
+    return k/(n*n) if norm else k
+
+def gaussian_1d(s):
+    r = int(np.ceil(3*s))
+    x = np.arange(-r, r+1)
+    g = np.exp(-(x*x)/(2*s*s))
+    return g/g.sum()
+
+def sep_gaussian(img, s):
+    g = gaussian_1d(s)
+    out = np.zeros_like(img)
+    for c in range(3):
+        t = ndimage.convolve1d(img[:,:,c], g, axis=1, mode='reflect')
+        t = ndimage.convolve1d(t, g, axis=0, mode='reflect')
+        out[:,:,c] = t
+    return np.clip(out,0,255).astype(np.uint8)
+
+# σ values
+sigma5 = 5/(2*np.pi)
+sigma20 = 20/(2*np.pi)
+
+box5_norm = ndimage.convolve(img, box_kernel(5,True), mode='reflect')
+box20_norm = ndimage.convolve(img, box_kernel(20,True), mode='reflect')
+
+gauss5 = sep_gaussian(img, sigma5)
+gauss20 = sep_gaussian(img, sigma20)
+
+imwrite('box5_norm.png', box5_norm.astype(np.uint8))
+imwrite('box20_norm.png', box20_norm.astype(np.uint8))
+imwrite('gauss5.png', gauss5)
+imwrite('gauss20.png', gauss20)
